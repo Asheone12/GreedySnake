@@ -12,16 +12,22 @@ import com.muen.greedysnake.entity.GameStyle
 import com.muen.greedysnake.entity.Type
 import com.muen.greedysnake.rxbus.RxBus
 import com.muen.greedysnake.rxbus.event.GameOver
+import java.util.Timer
+import java.util.TimerTask
 import kotlin.math.abs
 import kotlin.random.Random
 
-class GameView : View, Runnable {
+class GameView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
     private val gameSize = 14 // 地图的长宽
     private var screenHeight = 0 // 屏幕的整体高度
     private var screenWidth = 0 // 屏幕的整体宽度
 
     private val map = arrayListOf<ArrayList<GameStyle>>() // 整个地图的元素
-    private val snakeLocation = arrayListOf<Point>() // 蛇的位置
+    private var snakeLocation = arrayListOf<Point>() // 蛇的位置
     private val snakeHead = Point(gameSize / 2, gameSize / 2) // 蛇头位置
     private var foodLocation = Point() // 食物位置
 
@@ -31,20 +37,15 @@ class GameView : View, Runnable {
 
     private var eatCount = 0 // 吃的食物数量
 
-    private val thread = Thread(this) // 游戏线程
     private var gameStart = false // 游戏是否开始
 
     private val mPaint = Paint(Paint.ANTI_ALIAS_FLAG) // 画笔
 
-    constructor(context: Context?) : this(context, null)
-    constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)
-    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(
-        context,
-        attrs,
-        defStyleAttr
-    ) {
-        init()
-    }
+    private var timer: Timer? = null
+
+   init {
+       initGame()
+   }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -80,17 +81,6 @@ class GameView : View, Runnable {
         }
     }
 
-    override fun run() {
-        while (gameStart) {
-            moveSnake() // 移动蛇
-            drawSnakeBody() // 绘制蛇身
-            refreshBody() // 刷新蛇身
-            judgeEat() // 判断吃
-            postInvalidate() // 刷新视图
-            Thread.sleep(1000 / moveSpeed.toLong())
-        }
-    }
-
     /**
      * 在onSizeChanged可以获取到外部给GameView设置的宽高，所以这里给先前创建的变量进行赋值
      */
@@ -103,7 +93,7 @@ class GameView : View, Runnable {
     /**
      * 初始化函数
      */
-    private fun init() {
+    private fun initGame() {
         // 地图初始化
         for (y in 0 until gameSize) {
             val styleList = arrayListOf<GameStyle>()
@@ -120,8 +110,44 @@ class GameView : View, Runnable {
 
         gameStart = true
         setListener()   //启动控制器
-        thread.start() // 开始游戏
+        startGame()
+    }
 
+    private fun startGame() {
+        if (timer != null){
+            timer?.cancel()
+            timer = null
+        }
+        timer = Timer()
+        timer?.schedule(object: TimerTask() {
+            override fun run() {
+                invalidate()
+                if(gameStart){
+                    moveSnake() // 移动蛇
+                    drawSnakeBody() // 绘制蛇身
+                    refreshBody() // 刷新蛇身
+                    judgeEat() // 判断吃
+                    postInvalidate() // 刷新视图
+                }
+            }
+
+        }, 0,1000 / moveSpeed.toLong())
+    }
+
+    /**
+     * 重新开始游戏
+     */
+    fun restartGame(){
+        //重置游戏数据
+        map.clear()
+        snakeHead.x = gameSize / 2
+        snakeHead.y = gameSize / 2
+        snakeLocation = arrayListOf<Point>()
+        moveSpeed = 4 // 移动速度
+        snakeLength = 4 // 蛇的长度
+        snakeDirection = Direction.UP // 移动方向
+        //初始化游戏
+        initGame()
     }
 
     /**

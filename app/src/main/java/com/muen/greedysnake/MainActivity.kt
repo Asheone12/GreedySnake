@@ -24,6 +24,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             lp.alpha = 1.0f
             window.attributes = lp
             viewBinding.gameOver.visibility = View.GONE
+            viewBinding.gameView.restartGame()
         }
     }
 
