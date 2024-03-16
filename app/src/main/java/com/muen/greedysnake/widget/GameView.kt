@@ -79,6 +79,7 @@ class GameView @JvmOverloads constructor(
                 canvas.drawRect(left, top, right, bottom, mPaint)
             }
         }
+        invalidate()
     }
 
     /**
@@ -121,7 +122,6 @@ class GameView @JvmOverloads constructor(
         timer = Timer()
         timer?.schedule(object: TimerTask() {
             override fun run() {
-                invalidate()
                 if(gameStart){
                     moveSnake() // 移动蛇
                     drawSnakeBody() // 绘制蛇身
